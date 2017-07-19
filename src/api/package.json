@@ -1,0 +1,21 @@
+{
+  "name": "aws-advanced-networking-api-tier",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node ./node_modules/gulp/bin/gulp.js",
+    "start": "node ./bin/www",
+    "stop": "pkill -SIGINT aan-api",
+    "test": "karma start"
+  },
+  "dependencies": {
+    "body-parser": "~1.17.1",
+    "debug": "~2.6.3",
+    "express": "~4.15.2",
+    "mongodb": "^2.2.29",
+    "morgan": "~1.8.1",
+    "serve-favicon": "~2.4.2"
+  },
+  "devDependencies": {
+  }
+}
