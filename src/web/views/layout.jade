@@ -1,0 +1,12 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    if environment == "production"
+      script(src='/javascripts/dist/dist.min.js')
+    else
+      script(src='/javascripts/vendor/angular.min.js') 
+      script(src='/javascripts/accumulator.js')
+  body
+    block content

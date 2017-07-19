@@ -1,0 +1,55 @@
+@disabled: #777777;
+@disabled-text: #CCCCCC;
+
+body {
+  padding: 0px;
+  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+  color: #00B7FF;
+}
+
+.separator {
+  background-image: url(/images/accumulator.png);
+  background-repeat: repeat-x;
+  width: 100%;
+  height: 30px;
+}
+
+.btn-primary {    
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+    color: #ffffff;
+    background-color: #0074cc;
+    border-color: #0055cc #0055cc #003580;
+    border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+}
+
+.btn-primary.disabled,.btn-primary[disabled]{
+  color: @disabled-text;
+  background-color: @disabled;
+  border-color: @disabled @disabled #003580;
+}
+
+#env-notice {
+  position: absolute;
+  right: 2px;
+  top: 1px;
+  color: green;
+}
+
+#server-notice {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  color: gray;
+}
+
+.emphasize {
+  font-weight: bold;
+}
+
+.toggle {
+  height: 12px;
+  margin-left: 4px;
+}

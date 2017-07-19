@@ -1,0 +1,31 @@
+{
+  "name": "aws-advanced-networking-web-tier",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node ./node_modules/gulp/bin/gulp.js",
+    "start": "node ./bin/www",
+    "stop": "pkill -SIGINT aan-web",
+    "test": "karma start"
+  },
+  "dependencies": {
+    "body-parser": "~1.17.1",
+    "debug": "~2.6.3",
+    "express": "~4.15.2",
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-uglify": "^3.0.0",
+    "jade": "~1.11.0",
+    "less-middleware": "~2.2.0",
+    "morgan": "~1.8.1",
+    "request": "^2.81.0",
+    "serve-favicon": "~2.4.2"
+  },
+  "devDependencies": {
+    "jasmine-core": "^2.6.2",
+    "karma": "^1.7.0",
+    "karma-jasmine": "^1.1.0",
+    "karma-phantomjs-launcher": "^1.0.4"
+  }
+}

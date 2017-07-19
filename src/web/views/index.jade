@@ -1,0 +1,22 @@
+extends layout
+
+block content
+  .container(ng-app="accumulatorApp")
+    h1= title
+    div#env-notice= environmentNotice
+    div#server-notice= localAddress
+    div.separator
+    p Enter messages to accumulate
+    div(ng-controller="AccumulatorController", data-ng-init="init()")
+      form(ng-submit="add()")
+        input(type="text", placeholder="Enter a message", ng-model="item")
+        // disable button if item is empty
+        input.btn-primary(type="submit", value="Add", ng-disabled="!item.length || !enabled")
+      ul
+        li(ng-repeat="item in accumulator track by $index")
+          span(class="emphasize" ng-show="item.emphasis")
+            | {{item.message}}
+          span(ng-show="!item.emphasis")
+            | {{item.message}}
+          img(src="images/toggle-on.png" class="toggle" ng-show="item.emphasis" ng-click="toggleEmphasis(item)")
+          img(src="images/toggle-off.png" class="toggle" ng-show="!item.emphasis" ng-click="toggleEmphasis(item)")
