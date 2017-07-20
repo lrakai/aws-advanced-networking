@@ -7,8 +7,7 @@ var MongoClient = require('mongodb').MongoClient
   , ObjectId = require('mongodb').ObjectId
   , assert = require('assert');
 
-var host = process.env.DB_HOST ? process.env.DB_HOST : 'localhost';
-var url = 'mongodb://' + host + ':27017/accumulator';
+var dbConnectionString = process.env.DB_CONNECTION_STRING ? process.env.DB_CONNECTION_STRING : 'mongodb://localhost:27017/accumulator';
 var db;
 
 process.title = "aan-api";
@@ -19,7 +18,7 @@ console.log('NODE_ENV: ' + environment);
 
 var app = express();
 
-MongoClient.connect(url, function (err, mongoDb) {
+MongoClient.connect(dbConnectionString, function (err, mongoDb) {
   assert.equal(null, err);
   console.log("Connected to database");
 
