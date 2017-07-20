@@ -804,7 +804,7 @@
                 },
                 "LogGroupName": "FlowLogsGroup",
                 "ResourceId": {
-                    "Ref": "WebSubnetA"
+                    "Ref": "ApiSubnetA"
                 },
                 "ResourceType": "Subnet",
                 "TrafficType": "ALL"
@@ -821,7 +821,7 @@
                 },
                 "LogGroupName": "FlowLogsGroup",
                 "ResourceId": {
-                    "Ref": "WebSubnetB"
+                    "Ref": "ApiSubnetB"
                 },
                 "ResourceType": "Subnet",
                 "TrafficType": "ALL"
