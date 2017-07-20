@@ -408,7 +408,7 @@
                 ]
             }
         },
-        "WebAlbSecurityGroup": {
+        "WebElbSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Allow incoming http traffic",
@@ -426,7 +426,7 @@
                 "Tags": [
                     {
                         "Key": "Name",
-                        "Value": "Web Server ALB"
+                        "Value": "Web Server ELB"
                     },
                     {
                         "Key": "Environment",
@@ -530,7 +530,7 @@
                 "Tags": [
                     {
                         "Key": "Name",
-                        "Value": "WebAlb"
+                        "Value": "WebElb"
                     }
                 ]
             }
@@ -547,7 +547,7 @@
                         "Ref": "WebSubnetB"
                     }
                 ],
-                "Name": "web-alb",
+                "Name": "web-elb",
                 "Scheme": "internet-facing",
                 "Tags": [
                     {
@@ -557,7 +557,7 @@
                 ],
                 "SecurityGroups": [
                     {
-                        "Ref": "WebAlbSecurityGroup"
+                        "Ref": "WebElbSecurityGroup"
                     }
                 ]
             }
@@ -934,7 +934,7 @@
                 ]
             }
         },
-        "ApiAlbSecurityGroup": {
+        "ApiElbSecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Allow incoming http traffic",
@@ -952,7 +952,7 @@
                 "Tags": [
                     {
                         "Key": "Name",
-                        "Value": "Api Server ALB"
+                        "Value": "Api Server ELB"
                     },
                     {
                         "Key": "Environment",
@@ -1006,7 +1006,7 @@
                         "Key": "Name",
                         "Value": {
                             "Fn::FindInMap": [
-                                "WebInstanceConfig",
+                                "ApiInstanceConfig",
                                 "Metadata",
                                 "InstanceName"
                             ]
@@ -1055,7 +1055,7 @@
                 "Tags": [
                     {
                         "Key": "Name",
-                        "Value": "ApiAlb"
+                        "Value": "ApiElb"
                     }
                 ]
             }
@@ -1072,7 +1072,7 @@
                         "Ref": "ApiSubnetB"
                     }
                 ],
-                "Name": "api-alb",
+                "Name": "api-elb",
                 "Scheme": "internal",
                 "Tags": [
                     {
@@ -1082,7 +1082,7 @@
                 ],
                 "SecurityGroups": [
                     {
-                        "Ref": "ApiAlbSecurityGroup"
+                        "Ref": "ApiElbSecurityGroup"
                     }
                 ]
             }
