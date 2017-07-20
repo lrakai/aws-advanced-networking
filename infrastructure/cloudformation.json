@@ -1,0 +1,1171 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Cloud Academy VPC Peering and VPN Connections Between VPCs",
+    "Parameters": {
+        "Region": {
+            "Type": "String",
+            "Default": "us-west-2"
+        }
+    },
+    "Mappings": {
+        "WebInstanceConfig": {
+            "Metadata": {
+                "InstanceName": "web"
+            }
+        },
+        "ApiInstanceConfig": {
+            "Metadata": {
+                "InstanceName": "api"
+            }
+        },
+        "NetworkConfig": {
+            "WebVPC": {
+                "CIDR": "10.0.0.0/16"
+            },
+            "WebSubnetA": {
+                "CIDR": "10.0.0.0/24",
+                "AZ": "us-west-2a"
+            },
+            "WebSubnetB": {
+                "CIDR": "10.0.1.0/24",
+                "AZ": "us-west-2b"
+            },
+            "ApiVPC": {
+                "CIDR": "10.1.0.0/16"
+            },
+            "ApiSubnetA": {
+                "CIDR": "10.1.0.0/24",
+                "AZ": "us-west-2a"
+            },
+            "ApiSubnetB": {
+                "CIDR": "10.1.1.0/24",
+                "AZ": "us-west-2b"
+            }
+        },
+        "UserConfig": {
+            "Login": {
+                "Name": "student",
+                "Pass": "password"
+            }
+        }
+    },
+    "Resources": {
+        "DevInstance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "IamInstanceProfile": {
+                    "Ref": "WebInstanceProfile"
+                },
+                "ImageId": "ami-6df1e514",
+                "InstanceType": "t2.micro",
+                "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
+                "SecurityGroupIds": [
+                    {
+                        "Ref": "WebSecurityGroup"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Debug"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ],
+                "SubnetId": {
+                    "Ref": "WebSubnetA"
+                }
+            }
+        },
+        "WebInstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "web-instance-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "s3:Get*",
+                                        "s3:List*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "RoleName": "web-instance-role"
+            }
+        },
+        "FlowLogRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "vpc-flow-logs.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "web-instance-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "logs:CreateLogGroup",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents",
+                                        "logs:DescribeLogGroups",
+                                        "logs:DescribeLogStreams"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "RoleName": "flow-log-role"
+            }
+        },
+        "WebInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "WebInstanceRole"
+                    }
+                ]
+            }
+        },
+        "WebVpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "WebVPC",
+                        "CIDR"
+                    ]
+                },
+                "EnableDnsSupport": true,
+                "EnableDnsHostnames": true,
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Web Vpc"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "WebSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "WebSubnetA",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "WebSubnetA",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Web Subnet A"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "WebSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "WebSubnetB",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "WebSubnetB",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Web Subnet B"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "FlowLogWebSubnetA": {
+            "Type": "AWS::EC2::FlowLog",
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Fn::GetAtt": [
+                        "FlowLogRole",
+                        "Arn"
+                    ]
+                },
+                "LogGroupName": "FlowLogsGroup",
+                "ResourceId": {
+                    "Ref": "WebSubnetA"
+                },
+                "ResourceType": "VPC",
+                "TrafficType": "ALL"
+            }
+        },
+        "FlowLogWebSubnetB": {
+            "Type": "AWS::EC2::FlowLog",
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Fn::GetAtt": [
+                        "FlowLogRole",
+                        "Arn"
+                    ]
+                },
+                "LogGroupName": "FlowLogsGroup",
+                "ResourceId": {
+                    "Ref": "WebSubnetB"
+                },
+                "ResourceType": "VPC",
+                "TrafficType": "ALL"
+            }
+        },
+        "WebInternetGatewayAttach": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "InternetGatewayId": {
+                    "Ref": "WebInternetGateway"
+                }
+            }
+        },
+        "WebRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "WebVpc"
+                }
+            }
+        },
+        "WebPeeringRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "WebRouteTable"
+                },
+                "DestinationCidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "ApiVPC",
+                        "CIDR"
+                    ]
+                },
+                "VpcPeeringConnectionId": "WebApiPeeringConnection"
+            }
+        },
+        "WebPublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "WebRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "WebInternetGateway"
+                }
+            }
+        },
+        "WebASubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "WebSubnetA"
+                },
+                "RouteTableId": {
+                    "Ref": "WebRouteTable"
+                }
+            }
+        },
+        "WebBSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "WebSubnetB"
+                },
+                "RouteTableId": {
+                    "Ref": "WebRouteTable"
+                }
+            }
+        },
+        "WebInternetGateway": {
+            "Type": "AWS::EC2::InternetGateway"
+        },
+        "WebSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow incoming http and ssh traffic",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8080",
+                        "ToPort": "8080",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Web Servers"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "WebAlbSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow incoming http traffic",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Web Server ALB"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "WebLaunchConfiguration": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "DependsOn": "WebInternetGatewayAttach",
+            "Properties": {
+                "AssociatePublicIpAddress": true,
+                "IamInstanceProfile": {
+                    "Ref": "WebInstanceProfile"
+                },
+                "ImageId": "ami-6df1e514",
+                "InstanceType": "t2.micro",
+                "SecurityGroups": [
+                    {
+                        "Ref": "WebSecurityGroup"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -\n",
+                                "yum install -y nodejs git\n",
+                                "cd /home/ec2-user\n",
+                                "git clone https://github.com/lrakai/aws-advanced-networking.git\n",
+                                "cd aws-advanced-networking/src/web\n",
+                                "npm install --production\n",
+                                "npm run-script build\n",
+                                "NODE_ENV=production API_URL=http://app.elb.lab.private:80 nohup npm start &\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "WebAutoScalingGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "LaunchConfigurationName": {
+                    "Ref": "WebLaunchConfiguration"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::FindInMap": [
+                                "WebInstanceConfig",
+                                "Metadata",
+                                "InstanceName"
+                            ]
+                        },
+                        "PropagateAtLaunch": true
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Production",
+                        "PropagateAtLaunch": true
+                    }
+                ],
+                "HealthCheckGracePeriod": 180,
+                "HealthCheckType": "ELB",
+                "VPCZoneIdentifier": [
+                    {
+                        "Ref": "WebSubnetA"
+                    },
+                    {
+                        "Ref": "WebSubnetB"
+                    }
+                ],
+                "DesiredCapacity": "2",
+                "MinSize": "2",
+                "MaxSize": "2",
+                "TargetGroupARNs": [
+                    {
+                        "Ref": "WebTargetGroup"
+                    }
+                ]
+            }
+        },
+        "WebTargetGroup": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "HealthCheckIntervalSeconds": 20,
+                "HealthCheckTimeoutSeconds": 5,
+                "HealthyThresholdCount": 3,
+                "UnhealthyThresholdCount": 2,
+                "Name": "web-tier",
+                "Protocol": "HTTP",
+                "Port": 8080,
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "WebAlb"
+                    }
+                ]
+            }
+        },
+        "WebLoadBalancer": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "DependsOn": "WebInternetGatewayAttach",
+            "Properties": {
+                "Subnets": [
+                    {
+                        "Ref": "WebSubnetA"
+                    },
+                    {
+                        "Ref": "WebSubnetB"
+                    }
+                ],
+                "Name": "web-alb",
+                "Scheme": "internet-facing",
+                "Tags": [
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ],
+                "SecurityGroups": [
+                    {
+                        "Ref": "WebAlbSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "WebLoadBalancerListener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "DefaultActions": [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "WebTargetGroup"
+                        }
+                    }
+                ],
+                "LoadBalancerArn": {
+                    "Ref": "WebLoadBalancer"
+                },
+                "Port": 80,
+                "Protocol": "HTTP"
+            }
+        },
+        "WebApiPeeringConnection": {
+            "Type": "AWS::EC2::VPCPeeringConnection",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "WebVpc"
+                },
+                "PeerVpcId": {
+                    "Ref": "ApiVpc"
+                }
+            }
+        },
+        "PrivateHostedZone": {
+            "Type": "AWS::Route53::HostedZone",
+            "Properties": {
+                "HostedZoneConfig": {
+                    "Comment": "Hosted zone for app.elb.lab.private"
+                },
+                "Name": "app.elb.lab.private.",
+                "VPCs": [
+                    {
+                        "VPCId": {
+                            "Ref": "WebVpc"
+                        },
+                        "VPCRegion": {
+                            "Ref": "Region"
+                        }
+                    },
+                    {
+                        "VPCId": {
+                            "Ref": "ApiVpc"
+                        },
+                        "VPCRegion": {
+                            "Ref": "Region"
+                        }
+                    }
+                ],
+                "HostedZoneTags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Web, Api Private Hosted Zone"
+                    }
+                ]
+            }
+        },
+        "PrivateRecordSetGroup": {
+            "Type": "AWS::Route53::RecordSetGroup",
+            "Properties": {
+                "HostedZoneName": "app.elb.lab.private.",
+                "Comment": "Zone apex alias targeted to myELB LoadBalancer.",
+                "RecordSets": [
+                    {
+                        "Name": "app.elb.lab.private.",
+                        "Type": "A",
+                        "AliasTarget": {
+                            "HostedZoneId": {
+                                "Fn::GetAtt": [
+                                    "ApiLoadBalancer",
+                                    "CanonicalHostedZoneID"
+                                ]
+                            },
+                            "DNSName": {
+                                "Fn::GetAtt": [
+                                    "ApiLoadBalancer",
+                                    "DNSName"
+                                ]
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "ApiInstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "api-instance-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "s3:Get*",
+                                        "s3:List*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "RoleName": "api-instance-role"
+            }
+        },
+        "ApiInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "ApiInstanceRole"
+                    }
+                ]
+            }
+        },
+        "ApiVpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "ApiVPC",
+                        "CIDR"
+                    ]
+                },
+                "EnableDnsSupport": true,
+                "EnableDnsHostnames": true,
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Api Vpc"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "ApiSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "ApiSubnetA",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "ApiSubnetA",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Api Subnet A"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "ApiSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "ApiSubnetB",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "ApiSubnetB",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Api Subnet B"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "FlowLogApiSubnetA": {
+            "Type": "AWS::EC2::FlowLog",
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Fn::GetAtt": [
+                        "FlowLogRole",
+                        "Arn"
+                    ]
+                },
+                "LogGroupName": "FlowLogsGroup",
+                "ResourceId": {
+                    "Ref": "WebSubnetA"
+                },
+                "ResourceType": "VPC",
+                "TrafficType": "ALL"
+            }
+        },
+        "FlowLogApiSubnetB": {
+            "Type": "AWS::EC2::FlowLog",
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Fn::GetAtt": [
+                        "FlowLogRole",
+                        "Arn"
+                    ]
+                },
+                "LogGroupName": "FlowLogsGroup",
+                "ResourceId": {
+                    "Ref": "WebSubnetB"
+                },
+                "ResourceType": "VPC",
+                "TrafficType": "ALL"
+            }
+        },
+        "ApiInternetGatewayAttach": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                },
+                "InternetGatewayId": {
+                    "Ref": "ApiInternetGateway"
+                }
+            }
+        },
+        "ApiRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                }
+            }
+        },
+        "ApiPeeringRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "ApiRouteTable"
+                },
+                "DestinationCidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "WebVPC",
+                        "CIDR"
+                    ]
+                },
+                "VpcPeeringConnectionId": "WebApiPeeringConnection"
+            }
+        },
+        "ApiPublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "ApiRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "ApiInternetGateway"
+                }
+            }
+        },
+        "ApiASubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "ApiSubnetA"
+                },
+                "RouteTableId": {
+                    "Ref": "ApiRouteTable"
+                }
+            }
+        },
+        "ApiBSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "ApiSubnetB"
+                },
+                "RouteTableId": {
+                    "Ref": "ApiRouteTable"
+                }
+            }
+        },
+        "ApiInternetGateway": {
+            "Type": "AWS::EC2::InternetGateway"
+        },
+        "ApiSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow incoming http and ssh traffic",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8888",
+                        "ToPort": "8888",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Api Servers"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "ApiAlbSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow incoming http traffic",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Api Server ALB"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "ApiLaunchConfiguration": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "DependsOn": "ApiInternetGatewayAttach",
+            "Properties": {
+                "AssociatePublicIpAddress": true,
+                "IamInstanceProfile": {
+                    "Ref": "ApiInstanceProfile"
+                },
+                "ImageId": "ami-6df1e514",
+                "InstanceType": "t2.micro",
+                "SecurityGroups": [
+                    {
+                        "Ref": "ApiSecurityGroup"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -\n",
+                                "yum install -y nodejs git\n",
+                                "cd /home/ec2-user\n",
+                                "git clone https://github.com/lrakai/aws-advanced-networking.git\n",
+                                "cd aws-advanced-networking/src/api\n",
+                                "npm install --production\n",
+                                "NODE_ENV=production nohup npm start &\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+        "ApiAutoScalingGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "LaunchConfigurationName": {
+                    "Ref": "ApiLaunchConfiguration"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::FindInMap": [
+                                "WebInstanceConfig",
+                                "Metadata",
+                                "InstanceName"
+                            ]
+                        },
+                        "PropagateAtLaunch": true
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Production",
+                        "PropagateAtLaunch": true
+                    }
+                ],
+                "HealthCheckGracePeriod": 180,
+                "HealthCheckType": "ELB",
+                "VPCZoneIdentifier": [
+                    {
+                        "Ref": "ApiSubnetA"
+                    },
+                    {
+                        "Ref": "ApiSubnetB"
+                    }
+                ],
+                "DesiredCapacity": "2",
+                "MinSize": "2",
+                "MaxSize": "2",
+                "TargetGroupARNs": [
+                    {
+                        "Ref": "ApiTargetGroup"
+                    }
+                ]
+            }
+        },
+        "ApiTargetGroup": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "Properties": {
+                "HealthCheckIntervalSeconds": 20,
+                "HealthCheckTimeoutSeconds": 5,
+                "HealthyThresholdCount": 3,
+                "UnhealthyThresholdCount": 2,
+                "Name": "api-tier",
+                "Protocol": "HTTP",
+                "Port": 8888,
+                "VpcId": {
+                    "Ref": "ApiVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "ApiAlb"
+                    }
+                ]
+            }
+        },
+        "ApiLoadBalancer": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "DependsOn": "ApiInternetGatewayAttach",
+            "Properties": {
+                "Subnets": [
+                    {
+                        "Ref": "ApiSubnetA"
+                    },
+                    {
+                        "Ref": "ApiSubnetB"
+                    }
+                ],
+                "Name": "api-alb",
+                "Scheme": "internal",
+                "Tags": [
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ],
+                "SecurityGroups": [
+                    {
+                        "Ref": "ApiAlbSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "ApiLoadBalancerListener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "DefaultActions": [
+                    {
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "ApiTargetGroup"
+                        }
+                    }
+                ],
+                "LoadBalancerArn": {
+                    "Ref": "ApiLoadBalancer"
+                },
+                "Port": 80,
+                "Protocol": "HTTP"
+            }
+        },
+        "Group": {
+            "Type": "AWS::IAM::Group",
+            "Properties": {
+                "GroupName": "Students",
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "students-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "ec2:Describe*"
+                                    ],
+                                    "Resource": "*",
+                                    "Effect": "Allow",
+                                    "Condition": {
+                                        "StringEquals": {
+                                            "ec2:Region": "us-west-2"
+                                        }
+                                    }
+                                },
+                                {
+                                    "Action": [
+                                        "elasticloadbalancing:Describe*",
+                                        "autoscaling:DescribeAutoScalingGroups",
+                                        "health:DescribeEventAggregates",
+                                        "iam:ListRoles"
+                                    ],
+                                    "Resource": [
+                                        "*"
+                                    ],
+                                    "Effect": "Allow"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "User": {
+            "Type": "AWS::IAM::User",
+            "Properties": {
+                "LoginProfile": {
+                    "Password": {
+                        "Fn::FindInMap": [
+                            "UserConfig",
+                            "Login",
+                            "Pass"
+                        ]
+                    }
+                },
+                "Path": "/",
+                "Groups": [
+                    "Students"
+                ],
+                "UserName": {
+                    "Fn::FindInMap": [
+                        "UserConfig",
+                        "Login",
+                        "Name"
+                    ]
+                }
+            }
+        }
+    }
+}
