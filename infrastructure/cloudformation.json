@@ -333,7 +333,9 @@
                         "CIDR"
                     ]
                 },
-                "VpcPeeringConnectionId": "WebApiPeeringConnection"
+                "VpcPeeringConnectionId": {
+                    "Ref": "WebApiPeeringConnection"
+                }
             }
         },
         "WebPublicRoute": {
@@ -617,7 +619,7 @@
                 "HostedZoneTags": [
                     {
                         "Key": "Name",
-                        "Value": "Web, Api Private Hosted Zone"
+                        "Value": "Web Api Private Hosted Zone"
                     }
                 ]
             }
@@ -857,7 +859,9 @@
                         "CIDR"
                     ]
                 },
-                "VpcPeeringConnectionId": "WebApiPeeringConnection"
+                "VpcPeeringConnectionId": {
+                    "Ref": "WebApiPeeringConnection"
+                }
             }
         },
         "ApiPublicRoute": {
