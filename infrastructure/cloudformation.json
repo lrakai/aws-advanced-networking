@@ -280,7 +280,7 @@
                 "ResourceId": {
                     "Ref": "WebSubnetA"
                 },
-                "ResourceType": "VPC",
+                "ResourceType": "Subnet",
                 "TrafficType": "ALL"
             }
         },
@@ -297,7 +297,7 @@
                 "ResourceId": {
                     "Ref": "WebSubnetB"
                 },
-                "ResourceType": "VPC",
+                "ResourceType": "Subnet",
                 "TrafficType": "ALL"
             }
         },
@@ -806,7 +806,7 @@
                 "ResourceId": {
                     "Ref": "WebSubnetA"
                 },
-                "ResourceType": "VPC",
+                "ResourceType": "Subnet",
                 "TrafficType": "ALL"
             }
         },
@@ -823,7 +823,7 @@
                 "ResourceId": {
                     "Ref": "WebSubnetB"
                 },
-                "ResourceType": "VPC",
+                "ResourceType": "Subnet",
                 "TrafficType": "ALL"
             }
         },
