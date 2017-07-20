@@ -30,6 +30,6 @@ node_modules
 npm-debug.log
 
 # Build files
-public/javascripts/dist
+src/*/public/javascripts/dist
 
 .vscode
