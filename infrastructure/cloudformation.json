@@ -18,6 +18,16 @@
                 "InstanceName": "api"
             }
         },
+		"DbInstanceConfig": {
+            "Metadata": {
+                "InstanceName": "db"
+            }
+        },
+        "RouterInstanceConfig": {
+            "Metadata": {
+                "InstanceName": "router"
+            }
+        },
         "NetworkConfig": {
             "WebVPC": {
                 "CIDR": "10.0.0.0/16"
@@ -40,6 +50,31 @@
             "ApiSubnetB": {
                 "CIDR": "10.1.1.0/24",
                 "AZ": "us-west-2b"
+            },
+            "OnPremVPC": {
+                "CIDR": "192.168.0.0/16"
+            },
+            "RouterSubnetA": {
+                "CIDR": "192.168.0.0/24",
+                "AZ": "us-west-2a",
+				"ENIIp": "192.168.0.100"
+            },
+            "RouterSubnetB": {
+                "CIDR": "192.168.1.0/24",
+                "AZ": "us-west-2b",
+				"ENIIp": "192.168.1.100"
+            },
+            "DbSubnetA": {
+                "CIDR": "192.168.10.0/24",
+                "AZ": "us-west-2a",
+				"InstanceIp": "192.168.10.10",
+				"ENIIp": "192.168.10.200"
+            },
+            "DbSubnetB": {
+                "CIDR": "192.168.11.0/24",
+                "AZ": "us-west-2b",
+				"InstanceIp": "192.168.11.10",
+				"ENIIp": "192.168.11.200"
             }
         },
         "UserConfig": {
@@ -443,6 +478,9 @@
                 "IamInstanceProfile": {
                     "Ref": "WebInstanceProfile"
                 },
+        "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
                 "ImageId": "ami-6df1e514",
                 "InstanceType": "t2.micro",
                 "SecurityGroups": [
@@ -626,6 +664,7 @@
         },
         "PrivateRecordSetGroup": {
             "Type": "AWS::Route53::RecordSetGroup",
+			"DependsOn": "PrivateHostedZone",
             "Properties": {
                 "HostedZoneName": "app.elb.lab.private.",
                 "Comment": "Zone apex alias targeted to myELB LoadBalancer.",
@@ -969,6 +1008,9 @@
                 "IamInstanceProfile": {
                     "Ref": "ApiInstanceProfile"
                 },
+        "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
                 "ImageId": "ami-6df1e514",
                 "InstanceType": "t2.micro",
                 "SecurityGroups": [
@@ -1105,6 +1147,916 @@
                 "Protocol": "HTTP"
             }
         },
+
+		"ApiVPNGatewayRouteProp" : {
+  "Type" : "AWS::EC2::VPNGatewayRoutePropagation",
+  "Properties" : {
+    "RouteTableIds" : [{"Ref" : "ApiRouteTable"}],
+    "VpnGatewayId" : {"Ref" : "ApiVpnGateway"}
+  }
+},
+	"ApiVpnGatewayAttachment" : {
+       "Type" : "AWS::EC2::VPCGatewayAttachment",
+       "Properties" : {
+              "VpcId" : {"Ref" : "ApiVpc"},
+                "VpnGatewayId" : { "Ref" : "ApiVpnGateway" }
+       }
+},
+      "ApiVpnGateway" : {
+         "Type" : "AWS::EC2::VPNGateway",
+         "Properties" : {
+            "Type" : "ipsec.1",
+            "Tags" : [ { "Key" : "Name", "Value" : "Api tier VPN Gateway" } ]
+         }
+      },
+	  "ApiCorporateVPNConnectionA" : {
+         "Type" : "AWS::EC2::VPNConnection",
+         "Properties" : {
+            "Type" : "ipsec.1",
+    	    "StaticRoutesOnly" : "false",
+            "CustomerGatewayId" : {"Ref" : "CorporateGatewayA"},
+            "VpnGatewayId" : {"Ref" : "ApiVpnGateway"}
+         }
+      },
+	  
+	  "ApiCorporateVPNConnectionB" : {
+         "Type" : "AWS::EC2::VPNConnection",
+         "Properties" : {
+            "Type" : "ipsec.1",
+    	    "StaticRoutesOnly" : "false",
+            "CustomerGatewayId" : {"Ref" : "CorporateGatewayB"},
+            "VpnGatewayId" : {"Ref" : "ApiVpnGateway"}
+         }
+      },
+	  
+      "CorporateGatewayA" : {
+         "Type" : "AWS::EC2::CustomerGateway",
+         "Properties" : {
+            "Type" : "ipsec.1",
+            "BgpAsn" : "65000",
+            "IpAddress" : {"Ref":"CorporateVpnEIPA"}
+         }
+      },
+      "CorporateGatewayB" : {
+         "Type" : "AWS::EC2::CustomerGateway",
+         "Properties" : {
+            "Type" : "ipsec.1",
+            "BgpAsn" : "65000",
+            "IpAddress" : {"Ref":"CorporateVpnEIPB"}
+         }
+      },
+	  "CorporateVpnEIPA": {
+	  "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+	  },
+	  "CorporateVpnEIPB": {
+	  "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "Domain": "vpc"
+      }
+	  },
+	  "CorporateVpnEIPAssociationA" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : [ "CorporateVpnEIPA", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "RouterENIA" }
+      }
+    },
+	  "CorporateVpnEIPAssociationB" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : [ "CorporateVpnEIPB", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "RouterENIB" }
+      }
+    },
+	
+	  "RouterENIA" : {
+         "Type" : "AWS::EC2::NetworkInterface",
+         "Properties" : {
+            "Tags": [{"Key":"Name","Value":"Corporate Gateway ENI A"}],
+            "SourceDestCheck": "false",
+            "GroupSet": [{"Ref":"OnPremRouterSecurityGroup"}],
+            "SubnetId": {"Ref":"DbSubnetA"},
+            "PrivateIpAddress": {
+                            "Fn::FindInMap": [
+                                "NetworkConfig",
+                                "RouterSubnetA",
+                                "ENIIp"
+                            ]
+                        }
+         }
+      },
+	  "RouterENIB" : {
+         "Type" : "AWS::EC2::NetworkInterface",
+         "Properties" : {
+            "Tags": [{"Key":"Name","Value":"Corporate Gateway ENI B"}],
+            "SourceDestCheck": "false",
+            "GroupSet": [{"Ref":"OnPremRouterSecurityGroup"}],
+            "SubnetId": {"Ref":"DbSubnetB"},
+            "PrivateIpAddress": {
+                            "Fn::FindInMap": [
+                                "NetworkConfig",
+                                "RouterSubnetB",
+                                "ENIIp"
+                            ]
+                        }
+         }
+      },
+	  "DbENIA" : {
+         "Type" : "AWS::EC2::NetworkInterface",
+         "Properties" : {
+            "Tags": [{"Key":"Name","Value":"Corporate Gateway Ip A"}],
+            "SourceDestCheck": "false",
+            "GroupSet": [{"Ref":"OnPremRouterSecurityGroup"}],
+            "SubnetId": {"Ref":"DbSubnetA"},
+            "PrivateIpAddress": {
+                            "Fn::FindInMap": [
+                                "NetworkConfig",
+                                "DbSubnetA",
+                                "ENIIp"
+                            ]
+                        }
+         }
+      },
+	  "DbENIB" : {
+         "Type" : "AWS::EC2::NetworkInterface",
+         "Properties" : {
+            "Tags": [{"Key":"Name","Value":"Corporate Gateway Ip B"}],
+            "SourceDestCheck": "false",
+            "GroupSet": [{"Ref":"OnPremRouterSecurityGroup"}],
+            "SubnetId": {"Ref":"DbSubnetB"},
+            "PrivateIpAddress": {
+                            "Fn::FindInMap": [
+                                "NetworkConfig",
+                                "DbSubnetB",
+                                "ENIIp"
+                            ]
+                        }
+         }
+      },
+	  "RouterENIAttachmentA" : {
+    "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+        "Properties" : {
+		"DeleteOnTermination": false,
+            "InstanceId" : {"Ref" : "RouterInstanceA"},
+            "NetworkInterfaceId" : {"Ref" : "RouterENIA"},
+            "DeviceIndex" : "0" 
+        }
+		},
+	  "RouterENIAttachmentB" : {
+    "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+        "Properties" : {
+		"DeleteOnTermination": false,
+            "InstanceId" : {"Ref" : "RouterInstanceB"},
+            "NetworkInterfaceId" : {"Ref" : "RouterENIB"},
+            "DeviceIndex" : "0" 
+        }
+		},
+	  "RouterDbENIAttachmentA" : {
+    "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+        "Properties" : {
+		"DeleteOnTermination": false,
+            "InstanceId" : {"Ref" : "RouterInstanceA"},
+            "NetworkInterfaceId" : {"Ref" : "DbENIA"},
+            "DeviceIndex" : "1" 
+        }
+		},
+	  "RouterDbENIAttachmentB" : {
+    "Type" : "AWS::EC2::NetworkInterfaceAttachment",
+        "Properties" : {
+		"DeleteOnTermination": false,
+            "InstanceId" : {"Ref" : "RouterInstanceB"},
+            "NetworkInterfaceId" : {"Ref" : "DbENIB"},
+            "DeviceIndex" : "1" 
+        }
+		},
+
+        "DbInstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "db-instance-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "s3:Get*",
+                                        "s3:List*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "RoleName": "db-instance-role"
+            }
+        },
+        "DbInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "DbInstanceRole"
+                    }
+                ]
+            }
+        },
+		"RouterInstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "Policies": [
+                    {
+                        "PolicyName": "router-instance-policy",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Action": [
+                                        "s3:Get*",
+                                        "s3:List*"
+                                    ],
+                                    "Effect": "Allow",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "RoleName": "router-instance-role"
+            }
+        },
+        "RouterInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "RouterInstanceRole"
+                    }
+                ]
+            }
+        },
+        "OnPremVpc": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "OnPremVPC",
+                        "CIDR"
+                    ]
+                },
+                "EnableDnsSupport": true,
+                "EnableDnsHostnames": true,
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Vpc"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "RouterSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetA",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetA",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Router Subnet A"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "RouterSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetB",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetB",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Router Subnet B"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "DbSubnetA": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetA",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetA",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Db Subnet A"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "DbSubnetB": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "MapPublicIpOnLaunch": true,
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetB",
+                        "AZ"
+                    ]
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetB",
+                        "CIDR"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Db Subnet B"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "FlowLogRouterSubnetA": {
+            "Type": "AWS::EC2::FlowLog",
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Fn::GetAtt": [
+                        "FlowLogRole",
+                        "Arn"
+                    ]
+                },
+                "LogGroupName": "FlowLogsGroup",
+                "ResourceId": {
+                    "Ref": "RouterSubnetA"
+                },
+                "ResourceType": "Subnet",
+                "TrafficType": "ALL"
+            }
+        },
+        "FlowLogRouterSubnetB": {
+            "Type": "AWS::EC2::FlowLog",
+            "Properties": {
+                "DeliverLogsPermissionArn": {
+                    "Fn::GetAtt": [
+                        "FlowLogRole",
+                        "Arn"
+                    ]
+                },
+                "LogGroupName": "FlowLogsGroup",
+                "ResourceId": {
+                    "Ref": "RouterSubnetB"
+                },
+                "ResourceType": "Subnet",
+                "TrafficType": "ALL"
+            }
+        },
+        "OnPremInternetGatewayAttach": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "InternetGatewayId": {
+                    "Ref": "OnPremInternetGateway"
+                }
+            }
+        },
+        "RouterRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                }
+            }
+        },
+        "RouterPublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "RouterRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "OnPremInternetGateway"
+                }
+            }
+        },
+		
+        "DbRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                }
+            }
+        },
+        "DbRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "RouterRouteTable"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "OnPremInternetGateway"
+                }
+            }
+        },
+        "RouterASubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "RouterSubnetA"
+                },
+                "RouteTableId": {
+                    "Ref": "RouterRouteTable"
+                }
+            }
+        },
+        "RouterBSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "RouterSubnetB"
+                },
+                "RouteTableId": {
+                    "Ref": "RouterRouteTable"
+                }
+            }
+        },
+        "DbASubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "DbSubnetA"
+                },
+                "RouteTableId": {
+                    "Ref": "DbRouteTable"
+                }
+            }
+        },
+        "DbBSubnetRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "DbSubnetB"
+                },
+                "RouteTableId": {
+                    "Ref": "DbRouteTable"
+                }
+            }
+        },
+        "OnPremInternetGateway": {
+            "Type": "AWS::EC2::InternetGateway"
+        },
+        "OnPremDbSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow incoming db traffic",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "27017",
+                        "ToPort": "27018",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Db Servers"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+        "OnPremRouterSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Allow incoming db traffic",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "179",
+                        "ToPort": "179",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "udp",
+                        "FromPort": "500",
+                        "ToPort": "500",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "OnPremVpc"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "On Prem Routers"
+                    },
+                    {
+                        "Key": "Environment",
+                        "Value": "Prod"
+                    }
+                ]
+            }
+        },
+		"DbInstanceA": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "NetworkConfig",
+            "DbSubnetA",
+            "AZ"
+          ]
+        },
+        "IamInstanceProfile": {
+          "Ref": "DbInstanceProfile"
+        },
+        "ImageId": "ami-6df1e514",
+        "InstanceType": "t2.micro",
+        "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
+        "SecurityGroupIds": [
+          {
+            "Ref": "OnPremDbSecurityGroup"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "DbSubnetA"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+                        "Value": {
+                            "Fn::FindInMap": [
+                                "DbInstanceConfig",
+                                "Metadata",
+                                "InstanceName"
+                            ]
+                        }
+          },
+                    {
+                        "Key": "Environment",
+                        "Value": "Production"
+                    }
+        ],
+		"PrivateIpAddress": {
+                            "Fn::FindInMap": [
+                                "NetworkConfig",
+                                "DbSubnetA",
+                                "InstanceIp"
+                            ]
+                        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum -y install git\n",
+                "mkdir /home/ec2-user/iot\n",
+                "virtualenv /home/ec2-user/iot\n",
+                "mkdir /home/ec2-user/iot/certs\n",
+                "wget https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem -O /home/ec2-user/iot/certs/root.pem\n",
+                "source /home/ec2-user/iot/bin/activate\n",
+                "pip install AWSIoTPythonSDK\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+		"DbInstanceB": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "NetworkConfig",
+            "DbSubnetB",
+            "AZ"
+          ]
+        },
+        "IamInstanceProfile": {
+          "Ref": "DbInstanceProfile"
+        },
+        "ImageId": "ami-6df1e514",
+        "InstanceType": "t2.micro",
+        "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
+        "SecurityGroupIds": [
+          {
+            "Ref": "OnPremDbSecurityGroup"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "DbSubnetB"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+                        "Value": {
+                            "Fn::FindInMap": [
+                                "DbInstanceConfig",
+                                "Metadata",
+                                "InstanceName"
+                            ]
+                        }
+          },
+                    {
+                        "Key": "Environment",
+                        "Value": "Production"
+                    }
+        ],
+		"PrivateIpAddress": {
+                            "Fn::FindInMap": [
+                                "NetworkConfig",
+                                "DbSubnetB",
+                                "InstanceIp"
+                            ]
+                        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum -y install git\n",
+                "mkdir /home/ec2-user/iot\n",
+                "virtualenv /home/ec2-user/iot\n",
+                "mkdir /home/ec2-user/iot/certs\n",
+                "wget https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem -O /home/ec2-user/iot/certs/root.pem\n",
+                "source /home/ec2-user/iot/bin/activate\n",
+                "pip install AWSIoTPythonSDK\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+
+		"RouterInstanceA": {
+      "Type": "AWS::EC2::Instance",
+	  "DependsOn": "CorporateVpnEIPA",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "NetworkConfig",
+            "RouterSubnetA",
+            "AZ"
+          ]
+        },
+        "IamInstanceProfile": {
+          "Ref": "RouterInstanceProfile"
+        },
+        "ImageId": "ami-ac23fccc",
+        "InstanceType": "t2.micro",
+        "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
+        "SecurityGroupIds": [
+          {
+            "Ref": "OnPremRouterSecurityGroup"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "RouterSubnetA"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+                        "Value": {
+                            "Fn::FindInMap": [
+                                "RouterInstanceConfig",
+                                "Metadata",
+                                "InstanceName"
+                            ]
+                        }
+          },
+                    {
+                        "Key": "Environment",
+                        "Value": "Production"
+                    }
+        ],
+		"SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum -y install git\n",
+                "mkdir /home/ec2-user/iot\n",
+                "virtualenv /home/ec2-user/iot\n",
+                "mkdir /home/ec2-user/iot/certs\n",
+                "wget https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem -O /home/ec2-user/iot/certs/root.pem\n",
+                "source /home/ec2-user/iot/bin/activate\n",
+                "pip install AWSIoTPythonSDK\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
+	"RouterInstanceB": {
+      "Type": "AWS::EC2::Instance",
+	  "DependsOn": "CorporateVpnEIPB",
+      "Properties": {
+        "AvailabilityZone": {
+          "Fn::FindInMap": [
+            "NetworkConfig",
+            "RouterSubnetB",
+            "AZ"
+          ]
+        },
+        "IamInstanceProfile": {
+          "Ref": "RouterInstanceProfile"
+        },
+        "ImageId": "ami-ac23fccc",
+        "InstanceType": "t2.micro",
+        "KeyName": {
+                    "Ref": "AWS::AccountId"
+                },
+        "SecurityGroupIds": [
+          {
+            "Ref": "OnPremRouterSecurityGroup"
+          }
+        ],
+        "SubnetId": {
+          "Ref": "RouterSubnetB"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+                        "Value": {
+                            "Fn::FindInMap": [
+                                "RouterInstanceConfig",
+                                "Metadata",
+                                "InstanceName"
+                            ]
+                        }
+          }
+        ],
+		"SourceDestCheck": false,
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum -y install git\n",
+                "mkdir /home/ec2-user/iot\n",
+                "virtualenv /home/ec2-user/iot\n",
+                "mkdir /home/ec2-user/iot/certs\n",
+                "wget https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem -O /home/ec2-user/iot/certs/root.pem\n",
+                "source /home/ec2-user/iot/bin/activate\n",
+                "pip install AWSIoTPythonSDK\n"
+              ]
+            ]
+          }
+        }
+      }
+    },
         "Group": {
             "Type": "AWS::IAM::Group",
             "Properties": {
