@@ -1209,26 +1209,6 @@
                 }
             }
         },
-        "CorporateGatewayA": {
-            "Type": "AWS::EC2::CustomerGateway",
-            "Properties": {
-                "Type": "ipsec.1",
-                "BgpAsn": "65000",
-                "IpAddress": {
-                    "Ref": "CorporateVpnEIPA"
-                }
-            }
-        },
-        "CorporateGatewayB": {
-            "Type": "AWS::EC2::CustomerGateway",
-            "Properties": {
-                "Type": "ipsec.1",
-                "BgpAsn": "65000",
-                "IpAddress": {
-                    "Ref": "CorporateVpnEIPB"
-                }
-            }
-        },
         "CorporateVpnEIPA": {
             "Type": "AWS::EC2::EIP",
             "Properties": {
