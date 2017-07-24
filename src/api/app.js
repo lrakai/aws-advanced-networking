@@ -4,8 +4,7 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var bodyParser = require('body-parser');
 var MongoClient = require('mongodb').MongoClient
-  , ObjectId = require('mongodb').ObjectId
-  , assert = require('assert');
+  , ObjectId = require('mongodb').ObjectId;
 
 var dbConnectionString = process.env.DB_CONNECTION_STRING ? process.env.DB_CONNECTION_STRING : 'mongodb://localhost:27017/accumulator';
 var db;
@@ -18,13 +17,23 @@ console.log('NODE_ENV: ' + environment);
 
 var app = express();
 
-MongoClient.connect(dbConnectionString, function (err, mongoDb) {
-  assert.equal(null, err);
-  console.log("Connected to database");
+function dbConnect() {
+  MongoClient.connect(dbConnectionString, function (err, mongoDb) {
+    if (null == err) {
+      console.log("Connected to database");
 
-  db = mongoDb;
-});
+      db = mongoDb;
+      db.on('reconnect', function() {
+        console.log("Reconnected to database.");
+      })
+    } else {
+      console.log("Couldn't connect to database.  Retrying shortly...")
+      setTimeout(dbConnect, 2000);
+    }
+  });
+}
 
+dbConnect();
 
 // uncomment after placing your favicon in /public
 //app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
@@ -42,7 +51,7 @@ var insertDocument = function (db, document, callback) {
 var updateDocument = function (db, document, callback) {
   document._id = ObjectId(document._id);
   var collection = db.collection('documents');
-  collection.replaceOne({"_id": document._id}, document, function (err, result) {
+  collection.replaceOne({ "_id": document._id }, document, function (err, result) {
     callback(err, JSON.stringify(result.ops[0]));
   });
 };
@@ -50,7 +59,7 @@ var updateDocument = function (db, document, callback) {
 var findAllDocuments = function (db, callback) {
   var collection = db.collection('documents');
   collection.find({}).toArray(function (err, result) {
-    if(result) {
+    if (result) {
       result = result.reverse();
     }
     callback(err, result);
@@ -85,17 +94,6 @@ app.use(function (req, res, next) {
   var err = new Error('Not Found');
   err.status = 404;
   next(err);
-});
-
-// error handler
-app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = environment === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
 });
 
 module.exports = app;

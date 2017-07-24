@@ -501,7 +501,10 @@
                                 "cd aws-advanced-networking/src/web\n",
                                 "npm install --production\n",
                                 "npm run-script build\n",
-                                "NODE_ENV=production API_URL=http://app.elb.lab.private:80 nohup npm start &\n"
+								"while [[ 1 ]]; do\n",
+                                "  NODE_ENV=production API_URL=http://app.elb.lab.private:80 npm start\n",
+								"  sleep 10\n",
+								"done"
                             ]
                         ]
                     }
@@ -1030,7 +1033,10 @@
                                 "git clone https://github.com/lrakai/aws-advanced-networking.git\n",
                                 "cd aws-advanced-networking/src/api\n",
                                 "npm install --production\n",
-                                "NODE_ENV=production nohup npm start &\n"
+								"while [[ 1 ]]; do\n",
+                                "  NODE_ENV=production nohup npm start\n",
+								"  sleep 5\n",
+								"done"
                             ]
                         ]
                     }
