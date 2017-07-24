@@ -2075,14 +2075,21 @@
                         "Fn::Join": [
                             "",
                             [
-                                "#!/bin/bash\n",
-                                "yum -y install git\n",
-                                "mkdir /home/ec2-user/iot\n",
-                                "virtualenv /home/ec2-user/iot\n",
-                                "mkdir /home/ec2-user/iot/certs\n",
-                                "wget https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem -O /home/ec2-user/iot/certs/root.pem\n",
-                                "source /home/ec2-user/iot/bin/activate\n",
-                                "pip install AWSIoTPythonSDK\n"
+                                "#!/bin/vbash\n",
+                                "config=ibgp-config.bash\n",
+                                "echo \"#!/bin/vbash\" > $config\n",
+                                "echo \"source /opt/vyatta/etc/functions/script-template\" >> $config\n",
+                                "echo configure >> $config\n",
+                                "set protocols ospf area 0.0.0.0 network 192.168.0.100/32 >> $config\n",
+                                "set protocols ospf area 0.0.0.0 network 192.168.0.0/24 >> $config\n",
+                                "set protocols ospf parameters router-id 192.168.0.100 >> $config\n",
+                                "set protocols ospf passive-interface eth0 >> $config\n",
+                                "set protocols bgp 65000 neighbor 192.168.1.100 remote-as 65000 >> $config\n",
+                                "set protocols bgp 65000 parameters router-id 192.168.0.100 >> $config\n",
+                                "echo commit >> $config\n",
+                                "echo save >> $config\n",
+                                "echo exit >> $config\n",
+                                "vbash $config"
                             ]
                         ]
                     }
@@ -2134,14 +2141,21 @@
                         "Fn::Join": [
                             "",
                             [
-                                "#!/bin/bash\n",
-                                "yum -y install git\n",
-                                "mkdir /home/ec2-user/iot\n",
-                                "virtualenv /home/ec2-user/iot\n",
-                                "mkdir /home/ec2-user/iot/certs\n",
-                                "wget https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem -O /home/ec2-user/iot/certs/root.pem\n",
-                                "source /home/ec2-user/iot/bin/activate\n",
-                                "pip install AWSIoTPythonSDK\n"
+                                "#!/bin/vbash\n",
+                                "config=ibgp-config.bash\n",
+                                "echo \"#!/bin/vbash\" > $config\n",
+                                "echo \"source /opt/vyatta/etc/functions/script-template\" >> $config\n",
+                                "echo configure >> $config\n",
+                                "set protocols ospf area 0.0.0.0 network 192.168.1.100/ >> $config\n",
+                                "set protocols ospf area 0.0.0.0 network 192.168.1.0/24 >> $config\n",
+                                "set protocols ospf parameters router-id 192.168.1.100 >> $config\n",
+                                "set protocols ospf passive-interface eth0 >> $config\n",
+                                "set protocols bgp 65000 neighbor 192.168.0.100 remote-as 65000 >> $config\n",
+                                "set protocols bgp 65000 parameters router-id 192.168.1.100 >> $config\n",
+                                "echo commit >> $config\n",
+                                "echo save >> $config\n",
+                                "echo exit >> $config\n",
+                                "vbash $config"
                             ]
                         ]
                     }
