@@ -143,8 +143,8 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    "Action": [],
-                                    "Effect": "Allow",
+                                    "Action": ["iam:*"],
+                                    "Effect": "Deny",
                                     "Resource": "*"
                                 }
                             ]
@@ -499,7 +499,7 @@
                                 "npm install --production\n",
                                 "npm run-script build\n",
                                 "while [[ 1 ]]; do\n",
-                                "  NODE_ENV=production API_URL=http://app.elb.lab.private:80 npm start\n",
+                                "  NODE_ENV=production API_URL=http://api.elb.lab.private:80 npm start\n",
                                 "  sleep 10\n",
                                 "done"
                             ]
@@ -633,9 +633,9 @@
             "Type": "AWS::Route53::HostedZone",
             "Properties": {
                 "HostedZoneConfig": {
-                    "Comment": "Hosted zone for app.elb.lab.private"
+                    "Comment": "Hosted zone for api.elb.lab.private"
                 },
-                "Name": "app.elb.lab.private.",
+                "Name": "api.elb.lab.private.",
                 "VPCs": [
                     {
                         "VPCId": {
@@ -666,11 +666,11 @@
             "Type": "AWS::Route53::RecordSetGroup",
             "DependsOn": "PrivateHostedZone",
             "Properties": {
-                "HostedZoneName": "app.elb.lab.private.",
+                "HostedZoneName": "api.elb.lab.private.",
                 "Comment": "Zone apex alias targeted to myELB LoadBalancer.",
                 "RecordSets": [
                     {
-                        "Name": "app.elb.lab.private.",
+                        "Name": "api.elb.lab.private.",
                         "Type": "A",
                         "AliasTarget": {
                             "HostedZoneId": {
@@ -717,8 +717,8 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    "Action": [],
-                                    "Effect": "Allow",
+                                    "Action": ["iam:*"],
+                                    "Effect": "Deny",
                                     "Resource": "*"
                                 }
                             ]
@@ -1436,8 +1436,8 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    "Action": [],
-                                    "Effect": "Allow",
+                                    "Action": ["iam:*"],
+                                    "Effect": "Deny",
                                     "Resource": "*"
                                 }
                             ]
