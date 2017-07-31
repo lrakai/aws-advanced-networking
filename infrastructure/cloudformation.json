@@ -144,8 +144,8 @@
                             "Statement": [
                                 {
                                     "Action": [
-										"iam:*"
-									],
+                                        "iam:*"
+                                    ],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -720,8 +720,8 @@
                             "Statement": [
                                 {
                                     "Action": [
-										"iam:*"
-									],
+                                        "iam:*"
+                                    ],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -1299,8 +1299,8 @@
                             "Statement": [
                                 {
                                     "Action": [
-										"iam:*"
-									],
+                                        "iam:*"
+                                    ],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -1350,8 +1350,8 @@
                             "Statement": [
                                 {
                                     "Action": [
-										"iam:*"
-									],
+                                        "iam:*"
+                                    ],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -1930,6 +1930,13 @@
                     }
                 ],
                 "SourceDestCheck": false,
+				"PrivateIpAddress" : {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetA",
+                        "InstanceIp"
+                    ]
+                },
                 "UserData": {
                     "Fn::Base64": {
                         "Fn::Join": [
@@ -1996,6 +2003,13 @@
                     }
                 ],
                 "SourceDestCheck": false,
+				"PrivateIpAddress" : {
+                    "Fn::FindInMap": [
+                        "NetworkConfig",
+                        "RouterSubnetB",
+                        "InstanceIp"
+                    ]
+                },
                 "UserData": {
                     "Fn::Base64": {
                         "Fn::Join": [
@@ -2068,8 +2082,8 @@
                                         "route53:ListHostedZones",
                                         "route53:ListHostedZonesByName",
                                         "route53:ListResourceRecordSets",
-										"route53:ChangeResourceRecordSets",
-										"route53:AssociateVPCWithHostedZone",
+                                        "route53:ChangeResourceRecordSets",
+                                        "route53:AssociateVPCWithHostedZone",
                                         "ec2:CreateRoute"
                                     ],
                                     "Resource": [
