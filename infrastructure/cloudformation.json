@@ -57,24 +57,24 @@
             "RouterSubnetA": {
                 "CIDR": "192.168.0.0/24",
                 "AZ": "us-west-2a",
-                "ENIIp": "192.168.0.100"
+                "ENIIp": "192.168.0.200",
+                "InstanceIp": "192.168.1.100"
             },
             "RouterSubnetB": {
                 "CIDR": "192.168.1.0/24",
                 "AZ": "us-west-2b",
-                "ENIIp": "192.168.1.100"
+                "ENIIp": "192.168.1.200",
+                "InstanceIp": "192.168.1.100"
             },
             "DbSubnetA": {
                 "CIDR": "192.168.10.0/24",
                 "AZ": "us-west-2a",
-                "InstanceIp": "192.168.10.10",
-                "ENIIp": "192.168.10.200"
+                "InstanceIp": "192.168.10.10"
             },
             "DbSubnetB": {
                 "CIDR": "192.168.11.0/24",
                 "AZ": "us-west-2b",
-                "InstanceIp": "192.168.11.10",
-                "ENIIp": "192.168.11.200"
+                "InstanceIp": "192.168.11.10"
             }
         },
         "UserConfig": {
@@ -143,7 +143,9 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    "Action": ["iam:*"],
+                                    "Action": [
+										"iam:*"
+									],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -717,7 +719,9 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    "Action": ["iam:*"],
+                                    "Action": [
+										"iam:*"
+									],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -1147,68 +1151,6 @@
                 "Protocol": "HTTP"
             }
         },
-        "ApiVPNGatewayRouteProp": {
-            "Type": "AWS::EC2::VPNGatewayRoutePropagation",
-            "Properties": {
-                "RouteTableIds": [
-                    {
-                        "Ref": "ApiRouteTable"
-                    }
-                ],
-                "VpnGatewayId": {
-                    "Ref": "ApiVpnGateway"
-                }
-            }
-        },
-        "ApiVpnGatewayAttachment": {
-            "Type": "AWS::EC2::VPCGatewayAttachment",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "ApiVpc"
-                },
-                "VpnGatewayId": {
-                    "Ref": "ApiVpnGateway"
-                }
-            }
-        },
-        "ApiVpnGateway": {
-            "Type": "AWS::EC2::VPNGateway",
-            "Properties": {
-                "Type": "ipsec.1",
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": "Api tier VPN Gateway"
-                    }
-                ]
-            }
-        },
-        "ApiCorporateVPNConnectionA": {
-            "Type": "AWS::EC2::VPNConnection",
-            "Properties": {
-                "Type": "ipsec.1",
-                "StaticRoutesOnly": "false",
-                "CustomerGatewayId": {
-                    "Ref": "CorporateGatewayA"
-                },
-                "VpnGatewayId": {
-                    "Ref": "ApiVpnGateway"
-                }
-            }
-        },
-        "ApiCorporateVPNConnectionB": {
-            "Type": "AWS::EC2::VPNConnection",
-            "Properties": {
-                "Type": "ipsec.1",
-                "StaticRoutesOnly": "false",
-                "CustomerGatewayId": {
-                    "Ref": "CorporateGatewayB"
-                },
-                "VpnGatewayId": {
-                    "Ref": "ApiVpnGateway"
-                }
-            }
-        },
         "CorporateVpnEIPA": {
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -1265,7 +1207,7 @@
                     }
                 ],
                 "SubnetId": {
-                    "Ref": "DbSubnetA"
+                    "Ref": "RouterSubnetA"
                 },
                 "PrivateIpAddress": {
                     "Fn::FindInMap": [
@@ -1292,66 +1234,12 @@
                     }
                 ],
                 "SubnetId": {
-                    "Ref": "DbSubnetB"
+                    "Ref": "RouterSubnetB"
                 },
                 "PrivateIpAddress": {
                     "Fn::FindInMap": [
                         "NetworkConfig",
                         "RouterSubnetB",
-                        "ENIIp"
-                    ]
-                }
-            }
-        },
-        "DbENIA": {
-            "Type": "AWS::EC2::NetworkInterface",
-            "Properties": {
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": "Corporate Gateway Ip A"
-                    }
-                ],
-                "SourceDestCheck": "false",
-                "GroupSet": [
-                    {
-                        "Ref": "OnPremRouterSecurityGroup"
-                    }
-                ],
-                "SubnetId": {
-                    "Ref": "DbSubnetA"
-                },
-                "PrivateIpAddress": {
-                    "Fn::FindInMap": [
-                        "NetworkConfig",
-                        "DbSubnetA",
-                        "ENIIp"
-                    ]
-                }
-            }
-        },
-        "DbENIB": {
-            "Type": "AWS::EC2::NetworkInterface",
-            "Properties": {
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": "Corporate Gateway Ip B"
-                    }
-                ],
-                "SourceDestCheck": "false",
-                "GroupSet": [
-                    {
-                        "Ref": "OnPremRouterSecurityGroup"
-                    }
-                ],
-                "SubnetId": {
-                    "Ref": "DbSubnetB"
-                },
-                "PrivateIpAddress": {
-                    "Fn::FindInMap": [
-                        "NetworkConfig",
-                        "DbSubnetB",
                         "ENIIp"
                     ]
                 }
@@ -1383,32 +1271,6 @@
                 "DeviceIndex": "0"
             }
         },
-        "RouterDbENIAttachmentA": {
-            "Type": "AWS::EC2::NetworkInterfaceAttachment",
-            "Properties": {
-                "DeleteOnTermination": false,
-                "InstanceId": {
-                    "Ref": "RouterInstanceA"
-                },
-                "NetworkInterfaceId": {
-                    "Ref": "DbENIA"
-                },
-                "DeviceIndex": "1"
-            }
-        },
-        "RouterDbENIAttachmentB": {
-            "Type": "AWS::EC2::NetworkInterfaceAttachment",
-            "Properties": {
-                "DeleteOnTermination": false,
-                "InstanceId": {
-                    "Ref": "RouterInstanceB"
-                },
-                "NetworkInterfaceId": {
-                    "Ref": "DbENIB"
-                },
-                "DeviceIndex": "1"
-            }
-        },
         "DbInstanceRole": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -1436,7 +1298,9 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
-                                    "Action": ["iam:*"],
+                                    "Action": [
+										"iam:*"
+									],
                                     "Effect": "Deny",
                                     "Resource": "*"
                                 }
@@ -1486,10 +1350,9 @@
                             "Statement": [
                                 {
                                     "Action": [
-                                        "s3:Get*",
-                                        "s3:List*"
-                                    ],
-                                    "Effect": "Allow",
+										"iam:*"
+									],
+                                    "Effect": "Deny",
                                     "Resource": "*"
                                 }
                             ]
@@ -1610,14 +1473,14 @@
                 "AvailabilityZone": {
                     "Fn::FindInMap": [
                         "NetworkConfig",
-                        "RouterSubnetA",
+                        "DbSubnetA",
                         "AZ"
                     ]
                 },
                 "CidrBlock": {
                     "Fn::FindInMap": [
                         "NetworkConfig",
-                        "RouterSubnetA",
+                        "DbSubnetA",
                         "CIDR"
                     ]
                 },
@@ -1643,14 +1506,14 @@
                 "AvailabilityZone": {
                     "Fn::FindInMap": [
                         "NetworkConfig",
-                        "RouterSubnetB",
+                        "DbSubnetB",
                         "AZ"
                     ]
                 },
                 "CidrBlock": {
                     "Fn::FindInMap": [
                         "NetworkConfig",
-                        "RouterSubnetB",
+                        "DbSubnetB",
                         "CIDR"
                     ]
                 },
@@ -2077,12 +1940,12 @@
                                 "echo \"#!/bin/vbash\" > $config\n",
                                 "echo \"source /opt/vyatta/etc/functions/script-template\" >> $config\n",
                                 "echo configure >> $config\n",
-                                "set protocols ospf area 0.0.0.0 network 192.168.0.100/32 >> $config\n",
+                                "set protocols ospf area 0.0.0.0 network 192.168.0.200/32 >> $config\n",
                                 "set protocols ospf area 0.0.0.0 network 192.168.0.0/24 >> $config\n",
-                                "set protocols ospf parameters router-id 192.168.0.100 >> $config\n",
+                                "set protocols ospf parameters router-id 192.168.0.200 >> $config\n",
                                 "set protocols ospf passive-interface eth0 >> $config\n",
                                 "set protocols bgp 65000 neighbor 192.168.1.100 remote-as 65000 >> $config\n",
-                                "set protocols bgp 65000 parameters router-id 192.168.0.100 >> $config\n",
+                                "set protocols bgp 65000 parameters router-id 192.168.0.200 >> $config\n",
                                 "echo commit >> $config\n",
                                 "echo save >> $config\n",
                                 "echo exit >> $config\n",
@@ -2143,12 +2006,12 @@
                                 "echo \"#!/bin/vbash\" > $config\n",
                                 "echo \"source /opt/vyatta/etc/functions/script-template\" >> $config\n",
                                 "echo configure >> $config\n",
-                                "set protocols ospf area 0.0.0.0 network 192.168.1.100/ >> $config\n",
+                                "set protocols ospf area 0.0.0.0 network 192.168.1.200/ >> $config\n",
                                 "set protocols ospf area 0.0.0.0 network 192.168.1.0/24 >> $config\n",
-                                "set protocols ospf parameters router-id 192.168.1.100 >> $config\n",
+                                "set protocols ospf parameters router-id 192.168.1.200 >> $config\n",
                                 "set protocols ospf passive-interface eth0 >> $config\n",
                                 "set protocols bgp 65000 neighbor 192.168.0.100 remote-as 65000 >> $config\n",
-                                "set protocols bgp 65000 parameters router-id 192.168.1.100 >> $config\n",
+                                "set protocols bgp 65000 parameters router-id 192.168.1.200 >> $config\n",
                                 "echo commit >> $config\n",
                                 "echo save >> $config\n",
                                 "echo exit >> $config\n",
@@ -2171,26 +2034,122 @@
                             "Version": "2012-10-17",
                             "Statement": [
                                 {
+                                    "Sid": "MustNotRestrictRegionForRoute53VPCListing",
                                     "Action": [
                                         "ec2:Describe*"
                                     ],
                                     "Resource": "*",
-                                    "Effect": "Allow",
-                                    "Condition": {
-                                        "StringEquals": {
-                                            "ec2:Region": "us-west-2"
-                                        }
-                                    }
+                                    "Effect": "Allow"
                                 },
                                 {
                                     "Action": [
                                         "elasticloadbalancing:Describe*",
-                                        "autoscaling:DescribeAutoScalingGroups",
+                                        "autoscaling:Describe*",
                                         "health:DescribeEventAggregates",
-                                        "iam:ListRoles"
+                                        "config:DescribeConfigurationRecorders",
+                                        "cloudwatch:DescribeAlarms",
+                                        "cloudwatch:ListMetrics",
+                                        "cloudwatch:DescribeAlarmHistory",
+                                        "cloudwatch:GetMetricData",
+                                        "logs:describeLogGroups",
+                                        "logs:describeLogStreams",
+                                        "logs:DescribeMetricFilters",
+                                        "logs:filterLogEvents",
+                                        "logs:getLogEvents",
+                                        "iam:listRoles",
+                                        "ec2:CreateFlowLogs",
+                                        "elasticloadbalancing:ModifyTargetGroup",
+                                        "route53:CreateHostedZone",
+                                        "route53:DeleteHostedZone",
+                                        "route53:AssociateHostedZoneWithVPC",
+                                        "route53:DisassociateVPCFromHostedZone",
+                                        "route53:GetHostedZone",
+                                        "route53:GetHostedZoneCount",
+                                        "route53:ListHostedZones",
+                                        "route53:ListHostedZonesByName",
+                                        "route53:ListResourceRecordSets",
+										"route53:ChangeResourceRecordSets",
+										"route53:AssociateVPCWithHostedZone",
+                                        "ec2:CreateRoute"
                                     ],
                                     "Resource": [
                                         "*"
+                                    ],
+                                    "Effect": "Allow"
+                                },
+                                {
+                                    "Action": [
+                                        "iam:PassRole"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:iam::",
+                                                    {
+                                                        "Ref": "AWS::AccountId"
+                                                    },
+                                                    ":role/flow-log-role"
+                                                ]
+                                            ]
+                                        }
+                                    ],
+                                    "Effect": "Allow"
+                                },
+                                {
+                                    "Action": [
+                                        "ec2:CreateVpcPeeringConnection",
+                                        "ec2:DeleteVpcPeeringConnection",
+                                        "ec2:AcceptVpcPeeringConnection",
+                                        "ec2:CreateTags"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:ec2:us-west-2:",
+                                                    {
+                                                        "Ref": "AWS::AccountId"
+                                                    },
+                                                    ":vpc/*"
+                                                ]
+                                            ]
+                                        },
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:ec2:us-west-2:",
+                                                    {
+                                                        "Ref": "AWS::AccountId"
+                                                    },
+                                                    ":vpc-peering-connection/*"
+                                                ]
+                                            ]
+                                        }
+                                    ],
+                                    "Effect": "Allow"
+                                },
+                                {
+                                    "Action": [
+                                        "ec2:RevokeSecurityGroupIngress",
+                                        "ec2:AuthorizeSecurityGroupIngress"
+                                    ],
+                                    "Resource": [
+                                        {
+                                            "Fn::Join": [
+                                                "",
+                                                [
+                                                    "arn:aws:ec2:us-west-2:",
+                                                    {
+                                                        "Ref": "AWS::AccountId"
+                                                    },
+                                                    ":security-group/*"
+                                                ]
+                                            ]
+                                        }
                                     ],
                                     "Effect": "Allow"
                                 }
