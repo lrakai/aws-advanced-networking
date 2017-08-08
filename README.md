@@ -16,7 +16,7 @@ Demonstration of VPC Peering and site-to-site VPN connections using dynamic rout
 
 ## The Templates
 There are three templates in `infrastructure/`:
-1. `cloudformation.json`: The full template with all of the resources illustrated (and more).
+1. `cloudformation.json`: The full template with all of the resources illustrated (and more). CloudFormation explicitly denies using Elastic IPs for Customer Gateway IP addresses, so this part should be performed manually (or using a [custom resource](http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/template-custom-resources.html))
 1. `cloudformation-corporate-side.json`: The corporate network and a single instance to represent both the web and API tiers. This is to focus on VPN connections and dual-homed routers.
 1. `cloudformation-cloud-side.json`: The web and API tiers with a single instance to represent the corporate network. This is to focus on VPC Peering, VPC flow logs, and Route53 private hosted zones.
 
